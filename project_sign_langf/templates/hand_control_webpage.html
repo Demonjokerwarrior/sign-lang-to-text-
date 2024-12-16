@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Gesture & Knuckle Recognition</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            color: #00ff00;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        video, canvas {
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            margin: 10px;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            background-color: #00ff00;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005500;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Hand Gesture & Knuckle Recognition</h1>
+        <p>Use your webcam to detect hand gestures and knuckles.</p>
+    </header>
+
+    <main>
+        <video id="webcam" autoplay playsinline width="640" height="480"></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+        <div class="controls">
+            <button onclick="startCamera()">Start Camera</button>
+            <button onclick="captureFrame()">Capture Frame</button>
+        </div>
+    </main>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(err => {
+                    alert('Error accessing camera: ' + err);
+                });
+        }
+
+        function captureFrame() {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            alert('Frame captured! Now process the image for gesture and knuckle detection.');
+        }
+
+        // Placeholder for future gesture and knuckle detection logic
+    </script>
+</body>
+</html>

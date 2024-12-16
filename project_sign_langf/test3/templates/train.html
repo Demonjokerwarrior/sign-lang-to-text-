@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Gestures</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #121212;
+            color: #ffffff;
+        }
+        input, button {
+            font-size: 16px;
+            padding: 10px;
+            margin: 10px;
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #00ff00;
+            color: #000000;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #00cc00;
+        }
+    </style>
+    <script>
+        let gestureName = "";
+
+        function setGestureName() {
+            gestureName = document.getElementById("gestureName").value.trim();
+            if (gestureName) {
+                fetch('/set_gesture_name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gesture_name: gestureName })
+                }).then(response => response.json())
+                  .then(data => {
+                      if (data.status === "success") {
+                          alert("Gesture name set: " + gestureName);
+                      } else {
+                          alert(data.message);
+                      }
+                  });
+            } else {
+                alert("Please enter a valid gesture name.");
+            }
+        }
+
+        function startRecording() {
+            if (gestureName) {
+                fetch('/start_recording', { method: 'POST' });
+                alert("Recording started for gesture: " + gestureName);
+            } else {
+                alert("Please set a gesture name before recording.");
+            }
+        }
+
+        function stopRecording() {
+            fetch('/stop_recording', { method: 'POST' });
+            alert("Recording stopped.");
+        }
+    </script>
+</head>
+<body>
+    <h1>Train Gestures</h1>
+    <p>Enter a gesture name and record examples of the gesture.</p>
+    <input type="text" id="gestureName" placeholder="Enter gesture name">
+    <button onclick="setGestureName()">Set Gesture Name</button>
+    <br>
+    <button onclick="startRecording()">Start Recording</button>
+    <button onclick="stopRecording()">Stop Recording</button>
+    <br><br>
+    <h3>Live Feed:</h3>
+    <img src="/video_feed" alt="Video Feed" style="border: 1px solid #00ff00; max-width: 80%; border-radius: 5px;">
+    <br><br>
+    <a href="/">Go Back</a>
+</body>
+</html>
+

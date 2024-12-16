@@ -1,0 +1,147 @@
+from flask import Flask, render_template, Response, request
+import cv2
+import mediapipe as mp
+import os
+
+app = Flask(__name__)
+
+# Initialize Mediapipe Hands
+mp_hands = mp.solutions.hands
+mp_drawing = mp.solutions.drawing_utils
+hands = mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+# Directory to save gesture images
+output_dir = "gestures"
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+recording = False  # Flag to indicate if recording is active
+
+
+def generate_frames():
+    global recording
+    # Open the webcam (0 for default webcam)
+    camera = cv2.VideoCapture(0)
+    frame_count = 0  # Counter to save frames
+
+    while True:
+        # Read the frame from the webcam
+        success, frame = camera.read()
+        if not success:
+            break
+        else:
+            # Draw a red rectangle where gestures should be placed
+            height, width, _ = frame.shape
+            top_left = (int(width * 0.3), int(height * 0.3))
+            bottom_right = (int(width * 0.7), int(height * 0.7))
+            cv2.rectangle(frame, top_left, bottom_right, (0, 0, 255), 2)
+
+            # Convert the frame to RGB (Mediapipe requires RGB format)
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            # Process the frame to detect hands
+            results = hands.process(frame_rgb)
+
+            # Draw hand landmarks if hands are detected
+            if results.multi_hand_landmarks:
+                for hand_landmarks in results.multi_hand_landmarks:
+                    mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+
+                    # If recording, save frames inside the red rectangle
+                    if recording:
+                        x1, y1 = top_left
+                        x2, y2 = bottom_right
+                        cropped_frame = frame[y1:y2, x1:x2]  # Crop to the rectangle
+                        if cropped_frame.size != 0:  # Ensure valid frame
+                            frame_count += 1
+                            filename = os.path.join(output_dir, f"frame_{frame_count}.jpg")
+                            cv2.imwrite(filename, cropped_frame)
+
+            # Encode the frame to JPEG format
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+
+            # Yield frame in a format suitable for streaming
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+
+@app.route('/')
+def index():
+    # Renders the HTML page
+    return render_template('index.html')
+
+
+@app.route('/start_recording', methods=['POST'])
+def start_recording():
+    global recording
+    recording = True
+    return '', 204  # No content response
+
+
+@app.route('/stop_recording', methods=['POST'])
+def stop_recording():
+    global recording
+    recording = False
+    return '', 204  # No content response
+
+
+@app.route('/video_feed')
+def video_feed():
+    # Video streaming route
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language to Text</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        img {
+            border: 5px solid white;
+            border-radius: 10px;
+        }
+        button {
+            background-color: red;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: darkred;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sign Language to Text</h1>
+    <img src="{{ url_for('video_feed') }}" alt="Sign Language Stream">
+    <br>
+    <button onclick="startRecording()">Start</button>
+    <button onclick="stopRecording()">Stop</button>
+
+    <script>
+        function startRecording() {
+            fetch('/start_recording', { method: 'POST' });
+        }
+
+        function stopRecording() {
+            fetch('/stop_recording', { method: 'POST' });
+        }
+    </script>
+</body>
+</html>

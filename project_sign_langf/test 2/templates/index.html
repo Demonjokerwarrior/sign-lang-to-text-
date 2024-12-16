@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture Recognition</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #00FF00;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            text-align: center;
+        }
+        .video-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #video-feed {
+            width: 80%;
+            border: 2px solid #00FF00;
+            max-width: 900px;
+        }
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            margin: 10px;
+            border: 1px solid #00FF00;
+            background-color: #121212;
+            color: #00FF00;
+        }
+        button {
+            padding: 10px 20px;
+            border: 1px solid #00FF00;
+            background-color: #121212;
+            color: #00FF00;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #00FF00;
+            color: #121212;
+        }
+        .status-message {
+            margin-top: 10px;
+            color: #00FF00;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Hand Gesture Recording</h1>
+
+    <div class="video-container">
+        <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Video Feed">
+    </div>
+
+    <div class="controls">
+        <input type="text" id="gesture-name" placeholder="Enter gesture name">
+        <button onclick="setGestureName()">Set Gesture Name</button><br>
+
+        <button onclick="startRecording()">Start Recording</button>
+        <button onclick="stopRecording()">Stop Recording</button>
+
+        <!-- New Compare Gesture Button -->
+        <button onclick="compareGesture()">Compare Gesture</button>
+
+        <div class="status-message" id="status-message"></div>
+    </div>
+        <a href="/recognition"><button>Go to Gesture Recognition</button></a>
+
+    <script>
+        let gestureName = "";
+
+        // Function to set gesture name
+        function setGestureName() {
+            gestureName = document.getElementById("gesture-name").value.trim();
+            if (gestureName) {
+                fetch('/set_gesture_name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gesture_name: gestureName })  // Send as JSON
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const statusMessage = document.getElementById("status-message");
+                    if (data.status === "success") {
+                        statusMessage.textContent = "Gesture name set to: " + gestureName;
+                    } else {
+                        statusMessage.textContent = "Error: " + data.message;
+                    }
+                });
+            } else {
+                alert("Please enter a valid gesture name.");
+            }
+        }
+
+        // Start recording gesture images
+        function startRecording() {
+            fetch('/start_recording', {
+                method: 'POST'
+            }).then(() => {
+                const statusMessage = document.getElementById("status-message");
+                statusMessage.textContent = "Recording started. Gesture images are being saved.";
+            });
+        }
+
+        // Stop recording gesture images
+        function stopRecording() {
+            fetch('/stop_recording', {
+                method: 'POST'
+            }).then(() => {
+                const statusMessage = document.getElementById("status-message");
+                statusMessage.textContent = "Recording stopped.";
+            });
+        }
+
+        // Function to compare gesture
+        function compareGesture() {
+            fetch('/compare_gesture', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gesture_name: gestureName })  // Send gesture name to backend for comparison
+            })
+            .then(response => response.json())
+            .then(data => {
+                const statusMessage = document.getElementById("status-message");
+                if (data.match) {
+                    statusMessage.textContent = "Gesture matched successfully!";
+                } else {
+                    statusMessage.textContent = "Gesture did not match.";
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const statusMessage = document.getElementById("status-message");
+                statusMessage.textContent = "Error comparing gesture.";
+            });
+        }
+    </script>
+
+</body>
+</html>
